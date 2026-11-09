@@ -6,12 +6,17 @@ regexes only -- never sourced or executed.
 from __future__ import annotations
 
 import re
+import urllib.error
 import urllib.request
 from typing import Dict, List, NamedTuple, Optional
 
-LIST_URL = ("https://github.com/advantech-edge-ai/MIC-AI-camera-driver"
-            "/raw/refs/heads/main/internet_list.sh")
-DEFAULT_PROBE = "https://github.com/advantech-edge-ai/MIC-AI-camera-driver"
+# Fetched straight from raw.githubusercontent.com: the github.com/.../raw/...
+# URL Chris's script uses is only a redirect to it and sometimes stalls.
+LIST_URL = ("https://raw.githubusercontent.com/advantech-edge-ai/MIC-AI-camera-driver"
+            "/main/internet_list.sh")
+# Not the repo page: GitHub answers HEAD on repo pages with 504 or no reply at
+# all, intermittently. The front page answers HEAD reliably.
+DEFAULT_PROBE = "https://github.com/"
 USER_AGENT = "advantech-camera-installer"
 
 
@@ -121,8 +126,12 @@ def open_url(url: str, timeout: float = 15, method: str = "GET"):
 
 
 def check_network(url: str = DEFAULT_PROBE, timeout: float = 8) -> None:
-    """Raise OSError if *url* cannot be reached."""
-    with open_url(url, timeout=timeout, method="HEAD"):
+    """Raise OSError if *url* cannot be reached. Any HTTP status counts as
+    reachable -- the request got through, which is all this checks."""
+    try:
+        with open_url(url, timeout=timeout, method="HEAD"):
+            pass
+    except urllib.error.HTTPError:
         pass
 
 
