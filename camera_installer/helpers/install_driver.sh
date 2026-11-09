@@ -5,7 +5,7 @@
 # The only part of the tool that runs as root (via pkexec / sudo). Copies an
 # already downloaded, verified and extracted driver package into
 # /opt/advantech/camera_framework/vendors/... and runs its installer, the same
-# way Chris's online_mode.sh does:
+# way online_mode.sh in MIC-AI-camera-driver does:
 #   install.sh -> install_binaries.sh -> apt-get install ./*.deb
 # The vendor installer may reboot the machine when it finishes.
 #==============================================================================

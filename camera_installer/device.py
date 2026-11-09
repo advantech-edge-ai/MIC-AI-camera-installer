@@ -1,8 +1,8 @@
 """Device detection: product model + JetPack from /opt/version, SoC family
-from TEGRA_CHIPID in /etc/nv_boot_control.conf (same rules as Chris's
-install_camera.sh / online_mode.sh).
+from TEGRA_CHIPID in /etc/nv_boot_control.conf (same rules as
+install_camera.sh / online_mode.sh in MIC-AI-camera-driver).
 
-CF_VERSION_FILE / CF_NV_BOOT_CONF override the paths, matching Chris's
+CF_VERSION_FILE / CF_NV_BOOT_CONF override the paths, matching those
 scripts, so the tool can be exercised on a non-Jetson machine.
 """
 from __future__ import annotations

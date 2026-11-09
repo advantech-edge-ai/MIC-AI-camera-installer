@@ -1,7 +1,7 @@
 """Decide which catalog packages fit the detected device.
 
-Board rules follow Chris's install_camera.sh; do not change them until Chris
-does:
+Board rules follow install_camera.sh in MIC-AI-camera-driver; keep them in
+sync with that script:
   * mic_741 / mic_742 / mic_743 share Thor packages built for mic_742.
   * mic_741 / mic_743 prefer a package built for their own board (same
     JetPack) and only fall back to the mic_742 one when that camera has none

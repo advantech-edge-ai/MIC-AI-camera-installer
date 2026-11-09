@@ -44,7 +44,7 @@ class InstallError(Exception):
 # paths / state
 # --------------------------------------------------------------------------
 def dest_dir(pkg: Package) -> str:
-    """Same layout as Chris's vendors/ tree: 'thor' is stored as 'agx_thor',
+    """Same layout as the vendors/ tree of install_camera.sh: 'thor' is stored as 'agx_thor',
     realsense has no <sensor> level."""
     platform = "agx_thor" if pkg.platform == "thor" else pkg.platform
     parts = [VENDORS_DIR, pkg.vendor]

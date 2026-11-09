@@ -1,4 +1,4 @@
 """Advantech Camera Driver Installer."""
 
-__version__ = "0.1.2"
+__version__ = "1.0.0"
 APP_NAME = "Camera Driver Installer"

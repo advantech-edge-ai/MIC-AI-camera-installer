@@ -70,3 +70,5 @@ EOF
 chmod 755 "${STAGE}/DEBIAN/postinst"
 
 dpkg-deb --root-owner-group --build "${STAGE}" "${ROOT}/build/${PKG}_${VERSION}_all.deb"
+# unversioned copy for the permanent releases/latest/download/... link
+cp "${ROOT}/build/${PKG}_${VERSION}_all.deb" "${ROOT}/build/${PKG}_all.deb"

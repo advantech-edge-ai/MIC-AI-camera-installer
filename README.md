@@ -1,10 +1,27 @@
-# Advantech Camera Driver Installer（雛形）
+# Advantech Camera Driver Installer
 
 在 Jetson（MIC 系列）上用 GUI 安裝相機驅動。驅動清單與驅動包執行時從 GitHub repo
 [advantech-edge-ai/MIC-AI-camera-driver](https://github.com/advantech-edge-ai/MIC-AI-camera-driver)
-抓（`internet_list.sh` + Release Assets），工具本身與 Chris 的 `install_camera.sh` / `online_mode.sh` 獨立。
+抓（`internet_list.sh` + Release Assets），工具本身與該 repo 的 `install_camera.sh` / `online_mode.sh` 獨立。
 
-## 執行
+## 安裝
+
+支援 MIC-AI 系列 Jetson（Orin / Thor，JetPack 6 以上已實機驗證），需要網路連到 GitHub。
+
+```bash
+wget -O /tmp/advantech-camera-installer_all.deb \
+  https://github.com/advantech-edge-ai/MIC-AI-camera-installer/releases/latest/download/advantech-camera-installer_all.deb
+sudo apt install /tmp/advantech-camera-installer_all.deb
+```
+
+裝好後從應用程式選單開啟「Advantech Camera Driver Installer」，或在終端機執行 `advantech-camera-installer`
+（SSH 連線、沒有桌面時會自動改用終端機選單）。
+
+移除：`sudo apt remove advantech-camera-installer`（已安裝的相機驅動不受影響）。
+
+## 開發
+
+### 執行
 
 ```bash
 python3 -m camera_installer            # 有 $DISPLAY → GUI，否則終端機選單
@@ -16,7 +33,7 @@ python3 -m camera_installer --dry-run  # 下載 / 校驗 / 解壓都做，但不
 
 ### 在非 Jetson 機器上測試
 
-用環境變數假裝成某台機器（變數名稱與 Chris 腳本相同）：
+用環境變數假裝成某台機器（變數名稱與 MIC-AI-camera-driver 的腳本相同）：
 
 ```bash
 echo "MIC-733AO_32G_Orin_6.2_V1.0.0, 1:abc" > /tmp/version
@@ -27,7 +44,7 @@ CF_VERSION_FILE=/tmp/version CF_NV_BOOT_CONF=/tmp/nv_boot_control.conf \
 
 `--list-url <URL 或本機檔案>`（或 `CF_LIST_URL`）可改用別的清單。
 
-## 結構
+### 結構
 
 | 檔案 | 用途 |
 |---|---|
@@ -43,7 +60,7 @@ CF_VERSION_FILE=/tmp/version CF_NV_BOOT_CONF=/tmp/nv_boot_control.conf \
 | `tools/make_icons.py` | 開發用：把 `app_icon_192.png` 縮成各尺寸應用程式圖示（需 Pillow） |
 | `tools/build_deb.sh` | 用 `dpkg-deb` 打包成 `build/advantech-camera-installer_<版本>_all.deb` |
 
-## 打包
+### 打包
 
 ```bash
 bash tools/build_deb.sh
@@ -52,13 +69,13 @@ bash tools/build_deb.sh
 版本號取自 `camera_installer/__init__.py` 的 `__version__`。安裝時 deb 放 `/tmp` 再 `sudo apt install /tmp/<deb>`，
 可避免 apt 的 `_apt` 權限提示（放家目錄也能裝，只是會多一行提示）。
 
-## 測試
+### 測試
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-## 執行時寫入的位置
+### 執行時寫入的位置
 
 - 下載快取：`~/.cache/advantech-camera-installer/`
 - 安裝 log、上次安裝紀錄：`~/.local/share/advantech-camera-installer/`

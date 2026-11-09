@@ -11,7 +11,7 @@ import urllib.request
 from typing import Dict, List, NamedTuple, Optional
 
 # Fetched straight from raw.githubusercontent.com: the github.com/.../raw/...
-# URL Chris's script uses is only a redirect to it and sometimes stalls.
+# URL online_mode.sh uses is only a redirect to it and sometimes stalls.
 LIST_URL = ("https://raw.githubusercontent.com/advantech-edge-ai/MIC-AI-camera-driver"
             "/main/internet_list.sh")
 # Not the repo page: GitHub answers HEAD on repo pages with 504 or no reply at
