@@ -1,12 +1,26 @@
-# Advantech Camera Driver Installer
+# Camera Driver Installer for MIC-AI Series
 
-在 Jetson（MIC 系列）上用 GUI 安裝相機驅動。驅動清單與驅動包執行時從 GitHub repo
-[advantech-edge-ai/MIC-AI-camera-driver](https://github.com/advantech-edge-ai/MIC-AI-camera-driver)
-抓（`internet_list.sh` + Release Assets），工具本身與該 repo 的 `install_camera.sh` / `online_mode.sh` 獨立。
+A desktop app that installs the right camera driver for your Advantech MIC-AI system. It detects your board and JetPack version, shows only the drivers that match, then downloads, verifies and installs the one you pick.
 
-## 安裝
+Driver packages are downloaded from [MIC-AI-camera-driver](https://github.com/advantech-edge-ai/MIC-AI-camera-driver), the download center for Advantech MIC-AI camera drivers. This app is a graphical alternative to the auto-install script in that repository.
 
-支援 MIC-AI 系列 Jetson（Orin / Thor，JetPack 6 以上已實機驗證），需要網路連到 GitHub。
+![Select a camera driver](docs/images/select.png)
+
+## Requirements
+
+- An Advantech MIC-AI system running the **Advantech BSP image** with **JetPack 6.x or 7.x** (the app reads the board model and JetPack version from `/opt/version`)
+- Supported boards:
+  - Orin Nano / Orin NX: MIC-711, MIC-712AR, MIC-713
+  - AGX Orin: MIC-732, MIC-733AO
+  - AGX Thor: MIC-741, MIC-742, MIC-743, MIC-743RB
+- Internet access to `github.com`
+- An account with administrator (`sudo`) permission
+
+> MIC-735AR (IGX 2.0) has not been verified with this app yet. Please use the auto-install script in [MIC-AI-camera-driver](https://github.com/advantech-edge-ai/MIC-AI-camera-driver) for that system.
+
+## Install
+
+Open a terminal on the MIC-AI system and run:
 
 ```bash
 wget -O /tmp/advantech-camera-installer_all.deb \
@@ -14,69 +28,87 @@ wget -O /tmp/advantech-camera-installer_all.deb \
 sudo apt install /tmp/advantech-camera-installer_all.deb
 ```
 
-裝好後從應用程式選單開啟「Advantech Camera Driver Installer」，或在終端機執行 `advantech-camera-installer`
-（SSH 連線、沒有桌面時會自動改用終端機選單）。
+This always installs the latest version. Older versions are available on the [Releases](https://github.com/advantech-edge-ai/MIC-AI-camera-installer/releases) page.
 
-移除：`sudo apt remove advantech-camera-installer`（已安裝的相機驅動不受影響）。
+## Quick Start
 
-## 開發
+Open **Advantech Camera Driver Installer** from the application menu, or run `advantech-camera-installer` in a terminal.
 
-### 執行
+**1. Check**
+
+The app checks the network connection and detects your system. If a check fails, the app tells you what to do; fix it and click **Retry**.
+
+<img src="docs/images/check.png" alt="System check" width="560">
+
+**2. Select**
+
+Select the camera **Vendor**, then the **Camera**. Only drivers that match your board and JetPack version are listed (see [Device Check](#device-check)). Click **Next**.
+
+**3. Install**
+
+Review the confirmation and click **Install**. Enter your password when the system asks for administrator permission. The app downloads the driver package, verifies it, and runs its installer.
+
+<img src="docs/images/confirm.png" alt="Confirm installation" width="420">
+
+> **The system reboots automatically** when the driver installation finishes. Save your work before you click **Install**.
+
+**4. Start the camera**
+
+After the reboot, open the app again. It shows the steps for your driver, for example:
 
 ```bash
-python3 -m camera_installer            # 有 $DISPLAY → GUI，否則終端機選單
-python3 -m camera_installer --tui      # 強制終端機選單
-python3 -m camera_installer --dry-run  # 下載 / 校驗 / 解壓都做，但不以 root 執行安裝
+cd /opt/advantech/camera_framework/vendors/<vendor>/<sensor>/<platform>/<board>/<jetpack>
+sudo ./init.sh     # load the camera driver (run again after every reboot)
+./cam.sh 0         # show the image from /dev/video0
 ```
 
-需求：Python ≥ 3.8、`python3-tk`（GUI）、`pkexec`（GUI 提權）或 `sudo`（終端機）。無第三方套件。
+`cam.sh` opens a preview window, so run it from the system's desktop (not over SSH). The number is the video device index (`/dev/video0`, `/dev/video1`, ...). Click **Copy steps** to copy the commands.
 
-### 在非 Jetson 機器上測試
+<img src="docs/images/done.png" alt="Installation finished" width="560">
 
-用環境變數假裝成某台機器（變數名稱與 MIC-AI-camera-driver 的腳本相同）：
+## Device Check
 
-```bash
-echo "MIC-733AO_32G_Orin_6.2_V1.0.0, 1:abc" > /tmp/version
-printf "TEGRA_CHIPID 0x23\n" > /tmp/nv_boot_control.conf
-CF_VERSION_FILE=/tmp/version CF_NV_BOOT_CONF=/tmp/nv_boot_control.conf \
-  python3 -m camera_installer --dry-run
-```
-
-`--list-url <URL 或本機檔案>`（或 `CF_LIST_URL`）可改用別的清單。
-
-### 結構
-
-| 檔案 | 用途 |
+| Driver package | What the app does |
 |---|---|
-| `camera_installer/catalog.py` | 抓 / 用 regex 解析 `internet_list.sh`（不 source 執行） |
-| `camera_installer/device.py` | `/opt/version` 機型 + JetPack、`TEGRA_CHIPID` SoC 家族 |
-| `camera_installer/matching.py` | 機型配對規則（741/743 共用 742 包等） |
-| `camera_installer/checks.py` | 啟動環境檢查（GUI / TUI 共用） |
-| `camera_installer/installer.py` | 下載 → MD5 → 解壓 → 安裝流程、安裝紀錄 |
-| `camera_installer/helpers/install_driver.sh` | 唯一以 root 執行的部分（pkexec / sudo） |
-| `camera_installer/gui.py` | Tkinter 四步驟畫面 |
-| `camera_installer/tui.py` | 無 `$DISPLAY` 時的終端機選單 |
-| `tools/render_logo.py` | 開發用：把 logo SVG 轉成 Tk 能讀的 PNG（需 Pillow） |
-| `tools/make_icons.py` | 開發用：把 `app_icon_192.png` 縮成各尺寸應用程式圖示（需 Pillow） |
-| `tools/build_deb.sh` | 用 `dpkg-deb` 打包成 `build/advantech-camera-installer_<版本>_all.deb` |
+| Matches your board, JetPack, and SoC | Listed as **✓ Compatible** |
+| Shared package for your board (MIC-741 and MIC-743 can use MIC-742 packages) | Listed as **✓ uses MIC-742 package** |
+| For a different SoC (for example, a Thor package on an Orin system) | **Never listed** |
+| For a different board or JetPack version | Hidden. Shown only when you tick **Show drivers for other models**, marked ⚠, and you must confirm again before installing |
 
-### 打包
+If the app cannot detect your board or JetPack version, no driver is marked compatible and drivers for other models are shown with a warning.
+
+**Do not install a driver marked ⚠ unless you are sure.** A driver built for a different board or JetPack can leave the camera not working or the system unable to boot.
+
+## Using the App over SSH
+
+When there is no desktop (for example, over SSH), `advantech-camera-installer` shows a text menu with the same steps and checks. Enter `0` in any menu to go back or exit. To use the text menu on a desktop as well, run `advantech-camera-installer --tui`.
+
+## Notes
+
+- **Install one camera driver per system.** Installing a second driver, or the same driver again, may conflict with the previous one. To change to a different camera, reflash the Advantech BSP image first.
+- Packages without a published checksum are installed with the MD5 step marked **Not verified**.
+- If your network uses a proxy, start the app from a terminal with the proxy set, for example `https_proxy=http://proxy.example.com:8080 advantech-camera-installer`.
+- During `apt install` you may see `Download is performed unsandboxed as root ...`. This is a normal apt notice and does not affect the installation.
+
+## Uninstall
 
 ```bash
-bash tools/build_deb.sh
+sudo apt remove advantech-camera-installer
 ```
 
-版本號取自 `camera_installer/__init__.py` 的 `__version__`。安裝時 deb 放 `/tmp` 再 `sudo apt install /tmp/<deb>`，
-可避免 apt 的 `_apt` 權限提示（放家目錄也能裝，只是會多一行提示）。
+Camera drivers installed with the app are not removed.
 
-### 測試
+## Questions
 
-```bash
-python3 -m unittest discover -s tests -v
-```
+If you have questions about this app, or an installation does not work, please open an [Issue](https://github.com/advantech-edge-ai/MIC-AI-camera-installer/issues) in this repository. Attach the log file shown in the app; logs are saved in `~/.local/share/advantech-camera-installer/`.
 
-### 執行時寫入的位置
+For questions about a camera driver package itself, please open an Issue in [MIC-AI-camera-driver](https://github.com/advantech-edge-ai/MIC-AI-camera-driver/issues).
 
-- 下載快取：`~/.cache/advantech-camera-installer/`
-- 安裝 log、上次安裝紀錄：`~/.local/share/advantech-camera-installer/`
-- 驅動安裝目錄：`/opt/advantech/camera_framework/vendors/<vendor>/<sensor>/<platform>/<board>/<jetpack>`
+## Next Step
+
+After you successfully integrate cameras, you might be interested in browsing the [Advantech Solution Pilot](https://github.com/advantech-EdgeAI). It is a set of software services built on the MIC-AI series, offering an intuitive and flexible SDK compatible with JetPack 6.0 and above.
+
+> [!TIP]
+> Want to get the latest news and updates? [Subscribe to our newsletter](https://subscribe.advantechsae.online/)
+
+<img width="2804" height="561" alt="image" src="https://github.com/user-attachments/assets/65e66a93-82c3-4e29-ad29-df2a84383e28" />
