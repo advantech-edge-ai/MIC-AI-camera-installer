@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import sys
+import textwrap
 import threading
 
-from . import APP_NAME, __version__, catalog as cat, checks, installer, matching
+from . import APP_NAME, __version__, catalog as cat, checks, installed, installer, matching
 
 MARK = {"ok": "[ OK ]", "warn": "[WARN]", "err": "[FAIL]", "skip": "[ -- ]"}
 
@@ -56,7 +57,8 @@ def run(args) -> int:
     while True:
         print("\nSystem check")
         result = checks.run(args.list_url, report=lambda r: print(
-            "  {} {:<13} {}{}".format(MARK[r.state], checks.ROW_TITLES[r.name], r.value,
+            "  {} {:<13} {}{}".format(MARK[r.state], checks.ROW_TITLES[r.name],
+                                      r.value.replace("\n", "\n" + " " * 23),
                                       "\n         -> " + r.hint if r.hint else "")))
         if not result.blocking:
             break
@@ -111,6 +113,12 @@ def _confirm(catalog, device, m) -> bool:
     print("  For     : {} · JetPack {}".format(catalog.board_label(p.board), cat.jetpack_label(p.jetpack)))
     print("  Package : " + p.asset_name)
     print("  Size    : " + cat.human_size(cat.remote_size(p.url)))
+    conflict = installed.conflict(installed.scan(), p)
+    if conflict:
+        print("\n  !! {}:".format(conflict.title))
+        for d in conflict.drivers:
+            print("     - " + d.label())
+        print(textwrap.fill(conflict.note, width=78, initial_indent="     ", subsequent_indent="     "))
     if not m.compatible:
         print("\n  !! This driver was not built for this device:")
         for x in m.problems:
@@ -118,7 +126,7 @@ def _confirm(catalog, device, m) -> bool:
         print("     Installing it may leave the camera non-functional and change GPIO settings.")
     print("\n  NOTE: the device will REBOOT automatically when installation finishes.")
     print("        After reboot, run init.sh then cam.sh <N>.")
-    return _yes("\nInstall anyway?" if not m.compatible else "\nInstall now?")
+    return _yes("\nInstall anyway?" if not m.compatible or conflict else "\nInstall now?")
 
 
 def _install(pkg, args) -> bool:

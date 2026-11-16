@@ -7,7 +7,7 @@ import zipfile
 
 from camera_installer import catalog as cat
 from camera_installer import device as dev
-from camera_installer import installer, matching
+from camera_installer import installed, installer, matching
 
 FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "internet_list.sh")
 
@@ -178,6 +178,60 @@ class InstallerTest(unittest.TestCase):
             os.makedirs(stage)
             with self.assertRaises(installer.InstallError):
                 installer.extract(zp, stage, lambda i, n: None, threading.Event())
+
+
+class InstalledTest(unittest.TestCase):
+    def tree(self, d, *rels):
+        for rel in rels:
+            os.makedirs(os.path.join(d, rel))
+            open(os.path.join(d, rel, "install.sh"), "w").close()
+
+    def test_scan_empty_or_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(installed.scan(d), [])
+            self.assertEqual(installed.scan(os.path.join(d, "missing")), [])
+
+    def test_scan_layouts(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.tree(d,
+                      "otobrite/imx728/agx_orin/mic_733ao/jp6.2",
+                      # nested package content must not be listed as another driver
+                      "econ/STURDeCAM25/agx_orin/mic_733ao/jp6.2/STURDeCAM25_R01/jp6.2",
+                      "realsense/agx_thor/mic_742/jp7.2",
+                      "maxim/max96717_tpg/thor/mic_735ar/igx2.0")
+            os.makedirs(os.path.join(d, "stray/dir"))
+            found = installed.scan(d)
+            self.assertEqual([x.identity for x in found], [
+                ("econ", "sturdecam25", "agx_orin", "mic_733ao", "jp6.2"),
+                ("maxim", "max96717_tpg", "thor", "mic_735ar", "igx2.0"),
+                ("otobrite", "imx728", "agx_orin", "mic_733ao", "jp6.2"),
+                ("realsense", "", "thor", "mic_742", "jp7.2"),
+            ])
+            self.assertEqual(found[2].label(), "otobrite / imx728 · MIC-733AO · JetPack 6.2")
+            self.assertEqual(found[3].label(), "realsense · MIC-742 · JetPack 7.2")
+
+    def test_conflict_warning(self):
+        c = load()
+        get = {p.key: p for p in c.packages}.get
+        oto = get("otobrite/imx728/agx_orin/mic_733ao/jp6.2")
+        econ = get("econ/STURDeCAM25/agx_orin/mic_733ao/jp6.2")
+        rs = get("realsense/D457/thor/mic_742/jp7.2")
+        with tempfile.TemporaryDirectory() as d:
+            self.tree(d, "otobrite/imx728/agx_orin/mic_733ao/jp6.2", "realsense/agx_thor/mic_742/jp7.2")
+            found = installed.scan(d)
+        # re-installing what is already there is not a conflict
+        self.assertEqual([x.vendor for x in installed.others(found, oto)], ["realsense"])
+        self.assertEqual([x.vendor for x in installed.others(found, rs)], ["otobrite"])
+        one = installed.conflict(found[:1], econ)
+        self.assertEqual(one.title, "Another camera driver is already installed")
+        self.assertEqual([d.label() for d in one.drivers], ["otobrite / imx728 · MIC-733AO · JetPack 6.2"])
+        self.assertEqual(one.note, "After installing econ / STURDeCAM25, switching back to it may require "
+                                   "changing the boot settings, or even reflashing the system.")
+        two = installed.conflict(found, econ)
+        self.assertEqual(two.title, "2 other camera drivers are already installed")
+        self.assertTrue(two.note.startswith("After installing econ / STURDeCAM25, switching back to them"))
+        self.assertIsNone(installed.conflict(found[:1], oto))
+        self.assertIsNone(installed.conflict([], econ))
 
 
 if __name__ == "__main__":

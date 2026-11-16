@@ -1,18 +1,20 @@
 """Start-up system check (step 1), shared by GUI and TUI."""
 from __future__ import annotations
 
-from typing import Callable, NamedTuple, Optional
+from typing import Callable, NamedTuple, Optional, Tuple
 
 from . import catalog as cat
 from . import device as dev
+from . import installed as inst
 
-ROWS = ("network", "list", "model", "jetpack", "soc")
+ROWS = ("network", "list", "model", "jetpack", "soc", "installed")
 ROW_TITLES = {
     "network": "Network",
     "list": "Driver list",
     "model": "Device model",
     "jetpack": "JetPack",
     "soc": "SoC family",
+    "installed": "Installed",
 }
 
 
@@ -27,6 +29,7 @@ class Result(NamedTuple):
     catalog: Optional[cat.Catalog]
     device: dev.Device
     blocking: bool      # True -> cannot go on to step 2
+    installed: Tuple[inst.Installed, ...] = ()
 
 
 def run(list_url: str, report: Callable[[Row], None],
@@ -87,7 +90,18 @@ def run(list_url: str, report: Callable[[Row], None],
         report(Row("soc", "warn", "Not detected",
                    "TEGRA_CHIPID not found in {}.".format(dev.NV_BOOT_CONF)))
 
-    return Result(catalog, device, blocking)
+    running("installed")
+    installed = tuple(inst.scan())
+    if not installed:
+        report(Row("installed", "ok", "No camera driver installed yet"))
+    elif len(installed) == 1:
+        report(Row("installed", "ok", installed[0].label()))
+    else:
+        report(Row("installed", "warn", "\n".join(d.label() for d in installed),
+                   "{} camera drivers are installed. They may conflict: only one vendor's boot "
+                   "settings can be active at a time.".format(len(installed))))
+
+    return Result(catalog, device, blocking, installed)
 
 
 def platform_label(catalog: Optional[cat.Catalog], device: dev.Device) -> str:

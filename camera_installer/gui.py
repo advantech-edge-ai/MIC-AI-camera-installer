@@ -9,7 +9,7 @@ import tkinter as tk
 import tkinter.font as tkfont
 from tkinter import messagebox, ttk
 
-from . import APP_NAME, __version__, catalog as cat, checks, installer, matching
+from . import APP_NAME, __version__, catalog as cat, checks, installed, installer, matching
 
 # Advantech colours
 PRIMARY = "#004280"
@@ -297,7 +297,8 @@ class App:
             k = tk.Label(row, text=checks.ROW_TITLES[name], bg=WHITE, fg=TEXT, font=self.f["bold"],
                          width=14, anchor="w")
             k.grid(row=0, column=1, sticky="w")
-            v = tk.Label(row, text="", bg=WHITE, fg=MUTED, font=self.f["base"], anchor="w")
+            v = tk.Label(row, text="", bg=WHITE, fg=MUTED, font=self.f["base"], anchor="w",
+                         justify="left")
             v.grid(row=0, column=2, sticky="w")
             hint = tk.Label(row, text="", bg=WHITE, fg=ERR, font=self.f["small"], anchor="w",
                             justify="left", wraplength=520)
@@ -500,6 +501,10 @@ class App:
             tk.Label(kv, bg=WHITE, fg=TEXT, font=self.f["small"], wraplength=360, justify="left",
                      anchor="w", **opts).grid(row=r, column=1, sticky="w", pady=2)
 
+        conflict = installed.conflict(installed.scan(), p)
+        if conflict:
+            self._alert(body, WARN, WARN_BG, conflict.title,
+                        "\n".join("• " + d.label() for d in conflict.drivers) + "\n" + conflict.note)
         if not m.compatible:
             self._alert(body, ERR, ERR_BG, "This driver was not built for this device:",
                         "\n".join("• " + x for x in m.problems) +
@@ -510,7 +515,7 @@ class App:
 
         foot = tk.Frame(dlg, bg=WHITE, padx=18, pady=12, highlightthickness=1, highlightbackground=LINE)
         foot.pack(fill="x")
-        Button(foot, "Install anyway" if not m.compatible else "Install",
+        Button(foot, "Install anyway" if not m.compatible or conflict else "Install",
                lambda: (dlg.destroy(), self.start_install(p)), primary=True).pack(side="right", padx=(10, 0))
         Button(foot, "Cancel", dlg.destroy).pack(side="right")
         dlg.bind("<Escape>", lambda e: dlg.destroy())

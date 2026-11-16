@@ -36,7 +36,7 @@ Open **Advantech Camera Driver Installer** from the application menu, or run `ad
 
 **1. Check**
 
-The app checks the network connection and detects your system. If a check fails, the app tells you what to do; fix it and click **Retry**.
+The app checks the network connection, detects your system, and lists the camera drivers already installed on it. If a check fails, the app tells you what to do; fix it and click **Retry**.
 
 <img src="docs/images/check.png" alt="System check" width="560">
 
@@ -85,7 +85,7 @@ When there is no desktop (for example, over SSH), `advantech-camera-installer` s
 
 ## Notes
 
-- **Install one camera driver per system.** Installing a second driver, or the same driver again, may conflict with the previous one. To change to a different camera, reflash the Advantech BSP image first.
+- **Install one camera driver per system.** Installing a second driver, or the same driver again, may conflict with the previous one. To change to a different camera, reflash the Advantech BSP image first. The app warns you before installing when another camera driver is already installed.
 - Packages without a published checksum are installed with the MD5 step marked **Not verified**.
 - If your network uses a proxy, start the app from a terminal with the proxy set, for example `https_proxy=http://proxy.example.com:8080 advantech-camera-installer`.
 - During `apt install` you may see `Download is performed unsandboxed as root ...`. This is a normal apt notice and does not affect the installation.
